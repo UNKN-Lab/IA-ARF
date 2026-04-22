@@ -306,12 +306,12 @@ University_Advising_System/
 
 ## Citation
 
-This work is submitted to the **26th IEEE International Conference on Advanced Learning Technologies (ICALT 2026)**, July 6–9, 2026, Hung Yen, Vietnam.
+This work is submitted to the **26th IEEE International Conference on Advanced Learning Technologies (ICALT 2026)**, July 6–9, 2026, Vietnam.
 
 If you use this system or the IA-ARF framework in your research, please cite:
 
 ```bibtex
-@inproceedings{nguyen2026iaard,
+@inproceedings{nguyen2026iaarf,
   title     = {IA-ARF: An Intent-Aware Adaptive Retrieval
                Framework for Academic Advising Systems},
   author    = {Nguyen, Thien and Tang, Han and Tran, Hung-Nghiep},
@@ -319,11 +319,11 @@ If you use this system or the IA-ARF framework in your research, please cite:
                on Advanced Learning Technologies (ICALT 2026)},
   year      = {2026},
   month     = {July},
-  address   = {Hung Yen, Vietnam},
+  address   = {Vietnam},
   publisher = {IEEE Computer Society},
   institution = {University of Information Technology, VNU-HCM},
   note      = {Intent-driven RAG with five adaptive retrieval strategies
-               for Vietnamese academic advising}
+               for university advising}
 }
 ```
 
@@ -335,7 +335,7 @@ This project is licensed under the [MIT License](LICENSE).
 
 ## Acknowledgments
 
-- **University of Information Technology (UIT), VNU-HCM** — Domain expertise, institutional documents, and user evaluation
+- **University of Information Technology (UIT), VNU-HCM** — Domain expertise, user evaluation
 - **Ollama** — Local LLM deployment infrastructure
 - **Elasticsearch** — Vector and hybrid retrieval engine
 - **Cohere** — Multilingual reranking model
@@ -343,6 +343,6 @@ This project is licensed under the [MIT License](LICENSE).
 ---
 
 <p align="center">
-  <strong>University of Information Technology — Vietnam National University, Ho Chi Minh City</strong><br/>
+  <strong>University of Information Technology - Vietnam National University, Ho Chi Minh City</strong><br/>
   Built with ❤️ for smarter academic advising
 </p>

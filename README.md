@@ -152,8 +152,8 @@ After retrieval, prompts are **tailored per intent** — each intent class recei
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/<your-org>/University_Advising_System.git
-cd University_Advising_System
+git clone https://github.com/UNKN-Lab/IA-ARF.git
+cd IA-ARF
 ```
 
 ### 2. Start Infrastructure

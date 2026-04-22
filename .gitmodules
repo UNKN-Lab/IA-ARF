@@ -1,6 +1,0 @@
-[submodule "backend-support"]
-	path = backend-support
-	url = https://github.com/cristthien/backend-support.git
-[submodule "ai-support-frontend"]
-	path = ai-support-frontend
-	url = https://github.com/cristthien/ai-support-frontend

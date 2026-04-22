@@ -130,38 +130,13 @@ After retrieval, prompts are **tailored per intent** — each intent class recei
 
 ## System Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        Client Application                          │
-│                    Next.js 15 + React 19 Frontend                  │
-│           (Chat UI, Document Management, SSE Streaming)            │
-└──────────────────────────────┬──────────────────────────────────────┘
-                               │ REST / SSE
-                               ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│                        FastAPI Backend                              │
-│                                                                     │
-│   ┌─────────────┐  ┌───────────────────────────────────────────┐   │
-│   │  Auth Layer  │  │            IA-ARF Pipeline                │   │
-│   │ Email OTP +  │  │  Intent Detection → Smart Retrieval       │   │
-│   │ Google OAuth │  │  → Intent-Aware Prompt → LLM Generation   │   │
-│   └─────────────┘  └───────────────────────────────────────────┘   │
-│                              │                                      │
-│               ┌──────────────┴──────────────────────┐              │
-│               │        Infrastructure                │              │
-│               │  Elasticsearch 8.15 │ PostgreSQL 15  │              │
-│               │  (vector + BM25)    │ (auth + chat)  │              │
-│               └──────────────┬──────────────────────┘              │
-└──────────────────────────────┼──────────────────────────────────────┘
-                               ▼
-              ┌─────────────────────────────┐
-              │       LLM Providers         │
-              │  Ollama (Gemma 3:4B)        │
-              │  OpenAI (GPT-4o-mini)       │
-              │  BGE-M3 Embeddings (1024d)  │
-              │  Cohere Reranking (v3.0)    │
-              └─────────────────────────────┘
-```
+<p align="center">
+  <img src="IA-ARF-Architecture System.png" alt="IA-ARF System Architecture" width="800"/>
+</p>
+
+<p align="center">
+  <em>Figure 1. IA-ARF System Architecture — Intent-Oriented Data Ingestion, Adaptive Retrieval Engine, Augmentation Engine, and Generation Engine.</em>
+</p>
 
 ### Tech Stack
 
@@ -353,15 +328,21 @@ University_Advising_System/
 
 ## Citation
 
+This work is submitted to the **26th IEEE International Conference on Advanced Learning Technologies (ICALT 2026)**, July 6–9, 2026, Hung Yen, Vietnam.
+
 If you use this system or the IA-ARF framework in your research, please cite:
 
 ```bibtex
-@inproceedings{eduassist2025,
-  title     = {EduAssist: An Intent-Aware Adaptive Retrieval Framework
-               for AI-Powered University Academic Advising},
-  author    = {[Author Names]},
-  booktitle = {[Conference Name]},
-  year      = {2025},
+@inproceedings{nguyen2026iaard,
+  title     = {IA-ARF: An Intent-Aware Adaptive Retrieval
+               Framework for Academic Advising Systems},
+  author    = {Nguyen, Thien and Tang, Han and Tran, Hung-Nghiep},
+  booktitle = {Proceedings of the 26th IEEE International Conference
+               on Advanced Learning Technologies (ICALT 2026)},
+  year      = {2026},
+  month     = {July},
+  address   = {Hung Yen, Vietnam},
+  publisher = {IEEE Computer Society},
   institution = {University of Information Technology, VNU-HCM},
   note      = {Intent-driven RAG with five adaptive retrieval strategies
                for Vietnamese academic advising}

@@ -343,6 +343,6 @@ This project is licensed under the [MIT License](LICENSE).
 ---
 
 <p align="center">
-  <strong>University of Information Technology - Vietnam National University, Ho Chi Minh City</strong><br/>
+  <strong>UNKN Lab - University of Information Technology - Vietnam National University, Ho Chi Minh City</strong><br/>
   Built with ❤️ for smarter academic advising
 </p>

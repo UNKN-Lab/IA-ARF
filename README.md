@@ -2,7 +2,7 @@
   <img src="frontend/public/EduAsitant-logo.png" alt="EduAssist Logo" width="200"/>
 </p>
 
-<h1 align="center">EduAssist — Intent-Aware Adaptive Retrieval Framework<br/>for AI-Powered University Academic Advising</h1>
+<h1 align="center">Intent-Aware Adaptive Retrieval Framework<br/>for AI-Powered University Academic Advising</h1>
 
 <p align="center">
   <em>An intent-driven RAG system that dynamically selects retrieval strategies based on query classification, purpose-built for Vietnamese academic advising</em>
@@ -306,7 +306,7 @@ University_Advising_System/
 
 ## Citation
 
-This work is submitted to the **26th IEEE International Conference on Advanced Learning Technologies (ICALT 2026)**, July 6–9, 2026, Vietnam.
+This work is published at the **26th IEEE International Conference on Advanced Learning Technologies (ICALT 2026)**, July 6–9, 2026, Vietnam.
 
 If you use this system or the IA-ARF framework in your research, please cite:
 
@@ -331,7 +331,7 @@ If you use this system or the IA-ARF framework in your research, please cite:
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
+This project is licensed under the [CC BY-NC-SA 4.0 License](LICENSE).
 
 ## Acknowledgments
 

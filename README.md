@@ -29,28 +29,13 @@ Standard RAG systems apply a **uniform retrieval strategy** to all queries — r
 
 ## Proposed Framework: IA-ARF
 
-### Pipeline Overview
+<p align="center">
+  <img src="IA-ARF-Architecture System.png" alt="IA-ARF System Architecture" width="800"/>
+</p>
 
-```
-┌──────────────────────────────────────────────────────────────────────────┐
-│                        IA-ARF Pipeline                                   │
-│                                                                          │
-│  ┌────────────┐   ┌────────────────┐   ┌─────────────────────────────┐  │
-│  │ PREPROCESS │   │ CORE RETRIEVAL │   │        POSTPROCESS          │  │
-│  │            │   │                │   │                             │  │
-│  │ 1. Query   │──▶│ 3. Strategy    │──▶│ 5. Reranking (Cohere)      │  │
-│  │    Refine   │   │    Selection   │   │ 6. Deduplication           │  │
-│  │ 2. Intent  │   │ 4. Execute     │   │                             │  │
-│  │    Detect   │   │    Strategy    │   │                             │  │
-│  └────────────┘   └────────────────┘   └──────────────┬──────────────┘  │
-│                                                        ▼                 │
-│                                        ┌──────────────────────────────┐  │
-│                                        │       GENERATION             │  │
-│                                        │ 7. Intent-Optimized Prompt   │  │
-│                                        │ 8. LLM Answer Synthesis      │  │
-│                                        └──────────────────────────────┘  │
-└──────────────────────────────────────────────────────────────────────────┘
-```
+<p align="center">
+  <em>Figure 1. IA-ARF System Architecture — Intent-Oriented Data Ingestion, Adaptive Retrieval Engine, Augmentation Engine, and Generation Engine.</em>
+</p>
 
 ### Intent Classification
 
@@ -130,13 +115,6 @@ After retrieval, prompts are **tailored per intent** — each intent class recei
 
 ## System Architecture
 
-<p align="center">
-  <img src="IA-ARF-Architecture System.png" alt="IA-ARF System Architecture" width="800"/>
-</p>
-
-<p align="center">
-  <em>Figure 1. IA-ARF System Architecture — Intent-Oriented Data Ingestion, Adaptive Retrieval Engine, Augmentation Engine, and Generation Engine.</em>
-</p>
 
 ### Tech Stack
 

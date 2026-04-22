@@ -2,16 +2,16 @@
   <img src="frontend/public/EduAsitant-logo.png" alt="EduAssist Logo" width="200"/>
 </p>
 
-<h1 align="center">EduAssist — AI-Powered University Academic Advising System</h1>
+<h1 align="center">EduAssist — Intent-Aware Adaptive Retrieval Framework<br/>for AI-Powered University Academic Advising</h1>
 
 <p align="center">
-  <em>A Retrieval-Augmented Generation (RAG) platform for intelligent academic advising, built for Vietnamese university curricula</em>
+  <em>An intent-driven RAG system that dynamically selects retrieval strategies based on query classification, purpose-built for Vietnamese academic advising</em>
 </p>
 
 <p align="center">
-  <a href="#architecture">Architecture</a> •
-  <a href="#rag-pipelines">RAG Pipelines</a> •
-  <a href="#features">Features</a> •
+  <a href="#motivation">Motivation</a> •
+  <a href="#proposed-framework-ia-arf">IA-ARF Framework</a> •
+  <a href="#system-architecture">Architecture</a> •
   <a href="#getting-started">Getting Started</a> •
   <a href="#evaluation">Evaluation</a> •
   <a href="#citation">Citation</a>
@@ -19,28 +19,122 @@
 
 ---
 
-## Overview
+## Motivation
 
-**EduAssist** is an end-to-end AI-powered academic advising system that transforms institutional documents (curricula, regulations, policies) into an interactive, conversational knowledge service. Students ask free-form questions in Vietnamese and receive precise, cited answers grounded in official university sources.
+Standard RAG systems apply a **uniform retrieval strategy** to all queries — regardless of whether a user asks for a broad program overview, a specific credit count, or a semester-by-semester roadmap. This leads to suboptimal context quality: overview queries retrieve overly narrow chunks, factual queries drown in irrelevant sections, and comparative queries miss information from one of the entities being compared.
 
-The system introduces **IA-ARF (Intent-Aware Adaptive Retrieval Framework)**, a novel RAG pipeline that detects user intent before retrieval, then selects an optimized retrieval strategy tailored to each intent class — yielding higher answer accuracy and relevance compared to standard chunk-based RAG baselines.
-
-### Key Contributions
-
-- **Intent-Aware Retrieval** — Five distinct retrieval strategies (`OVERVIEW`, `STRUCTURE`, `ROADMAP`, `FACTUAL`, `COMPARE`) dynamically selected based on automatic intent classification.
-- **Major-Aware Filtering** — Domain-level filtering that distinguishes academic programs (e.g., Computer Science, Computer Engineering, AI) at retrieval time.
-- **Chunk-to-Section Expansion** — Retrieves fine-grained chunks then expands to full document sections, preserving structural context.
-- **Multi-Pipeline Evaluation** — Side-by-side evaluation of Naive, Standard (Chunk-Based Extent), and IA-ARF pipelines using RAGAS-compatible metrics.
+**EduAssist** addresses this by introducing **IA-ARF (Intent-Aware Adaptive Retrieval Framework)** — a RAG pipeline that first classifies the user's query intent, then activates a **purpose-built retrieval strategy** optimized for that intent class. This yields more relevant context, better-structured prompts, and ultimately higher answer quality.
 
 ---
 
-## Architecture
+## Proposed Framework: IA-ARF
+
+### Pipeline Overview
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│                        IA-ARF Pipeline                                   │
+│                                                                          │
+│  ┌────────────┐   ┌────────────────┐   ┌─────────────────────────────┐  │
+│  │ PREPROCESS │   │ CORE RETRIEVAL │   │        POSTPROCESS          │  │
+│  │            │   │                │   │                             │  │
+│  │ 1. Query   │──▶│ 3. Strategy    │──▶│ 5. Reranking (Cohere)      │  │
+│  │    Refine   │   │    Selection   │   │ 6. Deduplication           │  │
+│  │ 2. Intent  │   │ 4. Execute     │   │                             │  │
+│  │    Detect   │   │    Strategy    │   │                             │  │
+│  └────────────┘   └────────────────┘   └──────────────┬──────────────┘  │
+│                                                        ▼                 │
+│                                        ┌──────────────────────────────┐  │
+│                                        │       GENERATION             │  │
+│                                        │ 7. Intent-Optimized Prompt   │  │
+│                                        │ 8. LLM Answer Synthesis      │  │
+│                                        └──────────────────────────────┘  │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+### Intent Classification
+
+An LLM-based classifier routes each incoming query into one of **five intent classes**, determined via priority-ordered rules:
+
+| Priority | Intent | Trigger Condition | Example Query |
+|:--------:|--------|-------------------|---------------|
+| 1 | `COMPARE` | Two explicitly named entities + comparison keywords | *"Ngành CNTT khác gì ngành KTMT?"* |
+| 2 | `ROADMAP` | References a specific semester or year number | *"Học kỳ 5 ngành AI học những môn gì?"* |
+| 3 | `OVERVIEW` | Asks broadly about a program or course | *"Ngành Công nghệ thông tin học gì?"* |
+| 4 | `FACTUAL` | Seeks a specific short-answer fact | *"Môn Mạng máy tính bao nhiêu tín chỉ?"* |
+| 5 | `STRUCTURE` | Default — regulations, policies, processes | *"Điều kiện tốt nghiệp là gì?"* |
+
+### Five Adaptive Retrieval Strategies
+
+Each intent activates a **distinct retrieval strategy** tailored to the information need:
+
+#### 1. `OVERVIEW` → LLM Decomposition
+
+```
+Query → LLM detects target type (MAJOR vs COURSE)
+      → Generates 3 targeted sub-queries
+      → Retrieves sections for each sub-query
+      → Merges and deduplicates
+```
+
+- **MAJOR queries** decompose into: knowledge blocks, study format/duration, career opportunities
+- **COURSE queries** decompose into: general info, course description, teaching plan
+- Returns **section-level** results (H2 heading granularity)
+
+#### 2. `STRUCTURE` → Section Search + Expansion
+
+```
+Query → Chunk search (hybrid) → Cohere rerank → Extract section IDs → Expand to full sections
+```
+
+- Retrieves fine-grained chunks then expands to parent sections for structural completeness
+- Ideal for policy documents, regulations, and process descriptions
+
+#### 3. `ROADMAP` → Seed & Expand
+
+```
+Query → Schema-aware expansion → Chunk search → LLM selects best seed section
+      → Regex placeholder detection → Generate expansion queries → Retrieve additional sections
+```
+
+- **Seed**: LLM selects the most relevant semester/year section via structured reasoning
+- **Expand**: Regex detects placeholders (e.g., "môn tự chọn ngành \*\*") and generates queries to resolve them
+- **No LLM overhead** for expansion when no placeholders are found (early exit)
+
+#### 4. `FACTUAL` → Chunk-Level Precision
+
+```
+Query → Chunk search (top-20) → Cohere rerank (top-5) → Return chunks directly
+```
+
+- Returns **chunk-level** results (not sections) for maximum precision
+- Aggressive reranking to surface exact-match passages
+
+#### 5. `COMPARE` → Split-Retrieve-Merge
+
+```
+Query → LLM extracts Entity₁ and Entity₂
+      → Retrieve sections for Entity₁ (expand + rerank)
+      → Retrieve sections for Entity₂ (expand + rerank)
+      → Interleave merge → Deduplicate
+```
+
+- Ensures balanced coverage of both entities being compared
+- Interleaved merging preserves ordering fairness
+
+### Intent-Aware Prompt Generation
+
+After retrieval, prompts are **tailored per intent** — each intent class receives a different system instruction, context formatting, and output structure to maximize answer quality.
+
+---
+
+## System Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                        Client Application                          │
 │                    Next.js 15 + React 19 Frontend                  │
-│           (Chat UI, Document Management, Streaming SSE)            │
+│           (Chat UI, Document Management, SSE Streaming)            │
 └──────────────────────────────┬──────────────────────────────────────┘
                                │ REST / SSE
                                ▼
@@ -48,31 +142,25 @@ The system introduces **IA-ARF (Intent-Aware Adaptive Retrieval Framework)**, a 
 │                        FastAPI Backend                              │
 │                                                                     │
 │   ┌─────────────┐  ┌───────────────────────────────────────────┐   │
-│   │  Auth Layer  │  │           RAG Orchestration               │   │
-│   │ Email OTP +  │  │                                           │   │
-│   │ Google OAuth │  │  ┌───────────┬───────────┬───────────┐   │   │
-│   └─────────────┘  │  │   Naive   │ Standard  │  IA-ARF   │   │   │
-│                     │  │ Pipeline  │ Pipeline  │ Pipeline  │   │   │
-│                     │  │ (Baseline)│ (Chunk-   │ (Intent-  │   │   │
-│                     │  │           │  Extent)  │  Based)   │   │   │
-│                     │  └─────┬─────┴─────┬─────┴─────┬─────┘   │   │
-│                     └────────┼───────────┼───────────┼──────────┘   │
-│                              └───────────┼───────────┘              │
-│                                          ▼                          │
-│               ┌─────────────────────────────────────────┐          │
-│               │        Shared Infrastructure            │          │
-│               │  Elasticsearch 8.15 │ PostgreSQL 15     │          │
-│               │  (vector + BM25)    │ (auth + history)  │          │
-│               └──────────┬──────────┴───────────────────┘          │
-└──────────────────────────┼──────────────────────────────────────────┘
-                           ▼
-              ┌─────────────────────────┐
-              │     LLM Providers       │
-              │  Ollama (Gemma 3:4B)    │
-              │  OpenAI (GPT-4o-mini)   │
-              │  BGE-M3 (Embeddings)    │
-              │  Cohere (Reranking)     │
-              └─────────────────────────┘
+│   │  Auth Layer  │  │            IA-ARF Pipeline                │   │
+│   │ Email OTP +  │  │  Intent Detection → Smart Retrieval       │   │
+│   │ Google OAuth │  │  → Intent-Aware Prompt → LLM Generation   │   │
+│   └─────────────┘  └───────────────────────────────────────────┘   │
+│                              │                                      │
+│               ┌──────────────┴──────────────────────┐              │
+│               │        Infrastructure                │              │
+│               │  Elasticsearch 8.15 │ PostgreSQL 15  │              │
+│               │  (vector + BM25)    │ (auth + chat)  │              │
+│               └──────────────┬──────────────────────┘              │
+└──────────────────────────────┼──────────────────────────────────────┘
+                               ▼
+              ┌─────────────────────────────┐
+              │       LLM Providers         │
+              │  Ollama (Gemma 3:4B)        │
+              │  OpenAI (GPT-4o-mini)       │
+              │  BGE-M3 Embeddings (1024d)  │
+              │  Cohere Reranking (v3.0)    │
+              └─────────────────────────────┘
 ```
 
 ### Tech Stack
@@ -81,66 +169,21 @@ The system introduces **IA-ARF (Intent-Aware Adaptive Retrieval Framework)**, a 
 |-------|-----------|
 | **Frontend** | Next.js 15, React 19, TypeScript, TailwindCSS 4, Radix UI |
 | **Backend** | Python 3.9+, FastAPI, Pydantic v2, SQLAlchemy 2, Alembic |
-| **Search** | Elasticsearch 8.15 (kNN vector + BM25 fulltext + RRF hybrid) |
-| **Database** | PostgreSQL 15 (auth, chat history, document metadata) |
-| **Embeddings** | BGE-M3 via Ollama (1024-dim) |
-| **LLMs** | Gemma 3:4B (Ollama) / GPT-4o-mini (OpenAI) |
+| **Search** | Elasticsearch 8.15 — kNN (vector), BM25 (fulltext), RRF (hybrid) |
+| **Database** | PostgreSQL 15 — authentication, chat history, document metadata |
+| **Embeddings** | BGE-M3 via Ollama (1024-dim dense vectors) |
+| **Generation** | Gemma 3:4B (Ollama) / GPT-4o-mini (OpenAI) |
 | **Reranking** | Cohere `rerank-multilingual-v3.0` |
-| **Infrastructure** | Docker Compose, Ollama |
+| **Infrastructure** | Docker Compose |
 
----
-
-## RAG Pipelines
-
-EduAssist implements **three progressively sophisticated RAG pipelines**, enabling controlled ablation studies:
-
-### 1. Naive Pipeline (Baseline)
-
-```
-Query → Embedding → Chunk Search → Simple Prompt → LLM Answer
-```
-
-Direct chunk retrieval with no expansion, reranking, or query manipulation. Serves as the baseline for comparative evaluation.
-
-### 2. Standard Pipeline (Chunk-Based Extent)
-
-```
-Query → Query Expansion → Chunk Search → Section Expansion → Reranking → LLM Answer
-```
-
-A three-engine architecture:
-- **Retrieval Engine** — Query expansion → hybrid chunk search → section-level expansion → Cohere reranking
-- **Prompt Engine** — Constructs prompts with hierarchical document context
-- **Generation Engine** — Answer synthesis via LLM
-
-### 3. IA-ARF Pipeline (Intent-Aware Adaptive Retrieval Framework)
-
-```
-Query → Intent Detection → Query Refinement → Strategy-Specific Retrieval → Optimized Prompt → LLM Answer
-```
-
-The main contribution of this work. An LLM-based intent classifier routes queries to one of five specialized retrieval strategies:
-
-| Intent | Retrieval Strategy | Description |
-|--------|-------------------|-------------|
-| `OVERVIEW` | LLM Decomposition | Decomposes query into sub-queries targeting specific programs/courses |
-| `STRUCTURE` | Section Search + Expansion | Retrieves structural sections (tables of contents, program outlines) |
-| `ROADMAP` | Seed & Expand | Finds seed sections → expands via placeholder resolution |
-| `FACTUAL` | Chunk Exact Match + Rerank | Precise chunk retrieval with aggressive reranking |
-| `COMPARE` | Split-Retrieve-Merge | Splits entities → retrieves separately → merges interleaved |
-
----
-
-## Features
+### Key Features
 
 - 🔍 **Hybrid Search** — Vector (kNN), fulltext (BM25), and hybrid (RRF) search modes
-- 🎯 **Intent Detection** — Automatic 5-class intent classification for query routing
-- 🏫 **Major-Aware Retrieval** — Filters by academic program (CS, CE, MMT, AI, etc.)
-- 💬 **Conversational Chat** — Multi-turn dialogue with history contextualization
-- 🔄 **Streaming Responses** — Real-time SSE streaming for answer generation
-- 📚 **Document Management** — CRUD with DOCX/PDF ingestion and Markdown parsing
+- 🏫 **Major-Aware Filtering** — Filters retrieval by academic program via H1-level document metadata
+- 💬 **Multi-Turn Chat** — Conversation history contextualization for follow-up queries
+- 🔄 **Streaming Responses** — Server-Sent Events (SSE) for real-time answer generation
+- 📚 **Document Management** — CRUD with DOCX/PDF parsing → Markdown → chunking → indexing
 - 🔐 **Authentication** — Email OTP + Google OAuth with JWT tokens
-- 📊 **RAGAS-Compatible Evaluation** — Automated evaluation with ground-truth test sets
 
 ---
 
@@ -170,7 +213,6 @@ docker-compose up -d    # Elasticsearch 8.15 + PostgreSQL 15
 ### 3. Set Up Backend
 
 ```bash
-# Install dependencies
 pip install -r requirements.txt
 
 # Pull required Ollama models
@@ -198,54 +240,59 @@ npm run dev               # Starts on http://localhost:3000
 ### 5. Ingest Documents
 
 ```bash
-# Use the API to ingest Markdown documents
 curl -X POST http://localhost:8000/api/ingest \
   -H "Content-Type: application/json" \
   -d '{"directory": "data/raw"}'
 ```
 
-Visit the API docs at **http://localhost:8000/docs** for full endpoint documentation.
+API documentation: **http://localhost:8000/docs**
 
 ---
 
 ## Evaluation
 
-The system includes a comprehensive evaluation framework with ground-truth test queries (`tests/query.json`) across all five intent categories.
+To validate the effectiveness of IA-ARF, we compare it against two baseline pipelines using the same ground-truth test set (`tests/query.json`) spanning all five intent categories.
+
+### Baselines
+
+| Pipeline | Description |
+|----------|-------------|
+| **Naive** | Direct chunk retrieval → simple prompt → LLM. No expansion, no reranking. |
+| **Standard (Chunk-Based Extent)** | Query expansion → chunk search → section expansion → Cohere reranking → LLM. |
+| **IA-ARF (Proposed)** | Intent detection → adaptive strategy selection → intent-aware prompt → LLM. |
 
 ### Running Evaluations
 
 ```bash
 cd backend
 
-# Naive Pipeline (baseline)
+# Baseline: Naive Pipeline
 python tests/run_naive_evaluation.py
 python tests/run_naive_evaluation.py --factual --search-mode hybrid
 
-# Standard Pipeline (Chunk-Based Extent)
+# Baseline: Standard Pipeline (Chunk-Based Extent)
 python tests/run_pipeline_evaluation.py
 python tests/run_pipeline_evaluation.py --structure
 
-# IA-ARF Pipeline (Intent-Based)
+# Proposed: IA-ARF Pipeline
 python tests/run_ragas_evaluation.py
 python tests/run_ragas_evaluation.py --overview --search-mode vector
 ```
 
-### Filtering by Intent
-
 All scripts support intent filters: `--overview`, `--structure`, `--roadmap`, `--factual`, `--compare`
 
-### Output Format
+### Output Format (RAGAS-Compatible)
 
-Results are saved as RAGAS-compatible JSON in `tests/output/`:
+Results are saved as JSON in `tests/output/`:
 
 ```json
 {
-  "question": "...",
+  "question": "Ngành CNTT học những gì?",
   "answer": "...",
   "contexts": ["..."],
   "ground_truth": "...",
   "metadata": {
-    "intent": "FACTUAL",
+    "intent": "OVERVIEW",
     "search_mode": "hybrid",
     "response_time_ms": 2340,
     "num_sources": 5
@@ -261,107 +308,63 @@ Results are saved as RAGAS-compatible JSON in `tests/output/`:
 University_Advising_System/
 ├── backend/
 │   ├── app/
-│   │   ├── main.py                          # FastAPI application entry
-│   │   ├── config.py                        # Pydantic Settings
-│   │   ├── clients/                         # External service clients
-│   │   │   ├── elasticsearch.py             # ES client (vector/fulltext/hybrid)
-│   │   │   ├── ollama.py                    # Ollama (embedding + generation)
-│   │   │   ├── openai_client.py             # OpenAI client
-│   │   │   └── cohere_reranker.py           # Cohere reranker
-│   │   ├── query/                           # RAG Pipeline implementations
-│   │   │   ├── naive_pipeline.py            # Naive RAG (baseline)
-│   │   │   ├── pipeline.py                  # Standard RAG (Chunk-Based Extent)
-│   │   │   ├── intent_based_rag_pipeline.py # IA-ARF Pipeline
-│   │   │   ├── intent_based_retrieval_engine.py
-│   │   │   ├── intent_based_prompt_engine.py
-│   │   │   └── query_expander.py            # Query expansion
-│   │   ├── retrieval_engine/                # Intent detection & query refinement
-│   │   ├── ingestion/                       # Document ingestion pipeline
-│   │   ├── routers/                         # API route handlers
-│   │   ├── services/                        # Business logic layer
+│   │   ├── main.py                              # FastAPI entry point
+│   │   ├── config.py                            # Pydantic Settings
+│   │   ├── clients/                             # External service clients
+│   │   │   ├── elasticsearch.py                 # ES (vector/fulltext/hybrid)
+│   │   │   ├── ollama.py                        # Ollama (embedding + LLM)
+│   │   │   ├── openai_client.py                 # OpenAI client
+│   │   │   └── cohere_reranker.py               # Cohere reranker
+│   │   ├── query/                               # ★ RAG Pipelines
+│   │   │   ├── intent_based_rag_pipeline.py     # ★ IA-ARF orchestrator
+│   │   │   ├── intent_based_retrieval_engine.py # ★ 5 retrieval strategies
+│   │   │   ├── intent_based_prompt_engine.py    # ★ Intent-aware prompts
+│   │   │   ├── naive_pipeline.py                # Baseline: Naive RAG
+│   │   │   ├── pipeline.py                      # Baseline: Standard RAG
+│   │   │   └── query_expander.py                # Query expansion utilities
+│   │   ├── retrieval_engine/
+│   │   │   ├── intent_detection.py              # ★ 5-class intent classifier
+│   │   │   └── refine_query.py                  # Query normalization
+│   │   ├── ingestion/                           # Document ingestion pipeline
+│   │   ├── services/                            # Business logic layer
 │   │   └── utils/
-│   │       └── chunker.py                   # MarkdownStructureChunker
-│   ├── tests/                               # Evaluation scripts & test suites
-│   ├── docker-compose.yml                   # Elasticsearch + PostgreSQL
+│   │       └── chunker.py                       # MarkdownStructureChunker
+│   ├── tests/                                   # Evaluation & test suites
+│   │   ├── query.json                           # Ground-truth test queries
+│   │   ├── run_ragas_evaluation.py              # ★ IA-ARF evaluation
+│   │   ├── run_naive_evaluation.py              # Naive baseline eval
+│   │   └── run_pipeline_evaluation.py           # Standard baseline eval
+│   ├── docker-compose.yml
 │   └── requirements.txt
 │
-├── frontend/
-│   ├── app/                                 # Next.js 15 App Router pages
-│   │   ├── chat/                            # Standard chat interface
-│   │   ├── chat-stream/                     # Streaming chat interface
-│   │   ├── document/                        # Document management
-│   │   └── login/                           # Authentication pages
-│   ├── components/                          # Reusable React components
-│   │   ├── chat/                            # Chat UI components
-│   │   ├── Sidebar/                         # Navigation sidebar
-│   │   └── ui/                              # Base UI components (Radix-based)
-│   └── package.json
+├── frontend/                                    # Next.js 15 web application
+│   ├── app/                                     # App Router pages
+│   │   ├── chat-stream/                         # Streaming chat interface
+│   │   ├── document/                            # Document management
+│   │   └── login/                               # Authentication
+│   └── components/                              # React UI components
 │
-└── README.md                                # ← You are here
+└── README.md
 ```
 
----
-
-## API Reference
-
-| Group | Method | Endpoint | Description |
-|-------|--------|----------|-------------|
-| **Auth** | POST | `/api/auth/email/request-otp` | Request email OTP |
-| | POST | `/api/auth/email/verify-otp` | Verify OTP |
-| | POST | `/api/auth/google` | Google OAuth login |
-| | GET | `/api/auth/me` | Current user profile |
-| **Chat** | POST | `/api/chats/chat` | RAG chat (synchronous) |
-| | POST | `/api/chats/chat/stream` | RAG chat (SSE streaming) |
-| | GET | `/api/chats` | List chat sessions |
-| **Query** | POST | `/api/query` | Direct RAG query |
-| | GET | `/api/query/majors` | List available majors |
-| **Ingestion** | POST | `/api/ingest` | Ingest markdown documents |
-| | GET | `/api/ingest/status` | Index statistics |
-| **Documents** | GET/POST/PUT/DELETE | `/api/docs` | Document CRUD |
-| **System** | GET | `/health` | Health check |
-
----
-
-## Configuration
-
-All settings are managed via environment variables (`.env`). Key parameters:
-
-```env
-# LLM Provider
-USE_OPENAI=false                    # Toggle OpenAI vs Ollama
-OPENAI_API_KEY=sk-...               # Required if USE_OPENAI=true
-COHERE_API_KEY=...                  # Optional, for reranking
-
-# Retrieval Settings
-SEARCH_MODE=hybrid                  # vector | fulltext | hybrid
-ENABLE_RERANKING=true               # Cohere reranking toggle
-ENABLE_QUERY_EXPANSION=true         # Query expansion toggle
-TOP_K=10                            # Number of chunks to retrieve
-
-# Infrastructure
-ELASTICSEARCH_URL=http://localhost:9200
-POSTGRES_HOST=localhost
-OLLAMA_BASE_URL=http://localhost:11434
-```
-
-See `backend/.env.example` for the complete configuration reference.
+> ★ marks core IA-ARF components
 
 ---
 
 ## Citation
 
-If you use this system in your research, please cite:
+If you use this system or the IA-ARF framework in your research, please cite:
 
 ```bibtex
 @inproceedings{eduassist2025,
-  title     = {EduAssist: An Intent-Aware Adaptive Retrieval Framework 
+  title     = {EduAssist: An Intent-Aware Adaptive Retrieval Framework
                for AI-Powered University Academic Advising},
   author    = {[Author Names]},
   booktitle = {[Conference Name]},
   year      = {2025},
   institution = {University of Information Technology, VNU-HCM},
-  note      = {Retrieval-augmented generation system with intent-based 
-               adaptive retrieval for Vietnamese academic advising}
+  note      = {Intent-driven RAG with five adaptive retrieval strategies
+               for Vietnamese academic advising}
 }
 ```
 
@@ -371,15 +374,12 @@ If you use this system in your research, please cite:
 
 This project is licensed under the [MIT License](LICENSE).
 
----
-
 ## Acknowledgments
 
-- **University of Information Technology (UIT), VNU-HCM** — Domain knowledge, institutional documents, and user testing
+- **University of Information Technology (UIT), VNU-HCM** — Domain expertise, institutional documents, and user evaluation
 - **Ollama** — Local LLM deployment infrastructure
-- **Elasticsearch** — Vector and hybrid retrieval capabilities  
+- **Elasticsearch** — Vector and hybrid retrieval engine
 - **Cohere** — Multilingual reranking model
-- **LangChain** — LLM orchestration components
 
 ---
 

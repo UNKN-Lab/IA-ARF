@@ -1,0 +1,10 @@
+[
+  {
+    "original": "Môn EC213 học gì?",
+    "expected_intent": "overview"
+  },
+  {
+    "original": "Môn EC213 khác gì với môn EC214?",
+    "expected_intent": "compare"
+  }
+]
